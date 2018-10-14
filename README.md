@@ -1,6 +1,7 @@
 # openmp
 computer architecture lab project 
-> use of openmp programming language and qt graphical environment to solve several tasks specified by the teacher - [uclm](https://www.uclm.es/) computer science
+> use of openmp programming language and qt graphical environment to solve several tasks specified by the teacher  
+[uclm](https://www.uclm.es/) computer science
 
 ## installation
 **g++ compiler** -fopenmp flag which is available in all  major distributions, if not run the following
