@@ -18,7 +18,7 @@ divided into two differents subtasks each of one tested in a sequential and para
 2. given a image, creation of its [histogram][h]
 
 ![](/files/graya.gif)
-_subtask1 working on ubuntu_
+_*subtask1 working on ubuntu_
 
 [g]: https://github.com/jupcan/openmp/tree/master/graya
 [h]: https://github.com/jupcan/openmp/tree/master/histogram
