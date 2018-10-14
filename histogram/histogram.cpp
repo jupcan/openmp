@@ -25,56 +25,10 @@ double computeHistogramSequential(QImage *image) {
         3. we asign a rgb sequence to the previously created gray pixel */
     QRgb* rgbpixel = reinterpret_cast<QRgb*>(pixelPtr + ii);
     int gray = qGray(*rgbpixel);
-    *rgbpixel = QColor(gray, gray, gray).rgba();
+    histogram[ii] = gray
+    //*rgbpixel = QColor(gray, gray, gray).rgba();
   }
   return omp_get_wtime() - start_time;
-}
-
-double computeGrayParallel(QImage *image) {
-  double start_time = omp_get_wtime();
-  uchar *pixelPtr = image->bits();
-
-#pragma omp parallel for
-  for (int ii = 0; ii < image->byteCount(); ii += COLOUR_DEPTH) {
-    QRgb* rgbpixel = reinterpret_cast<QRgb*>(pixelPtr + ii);
-    int gray = qGray(*rgbpixel);
-    *rgbpixel = QColor(gray, gray, gray).rgba();
-  }
-  return omp_get_wtime() - start_time;
-}
-
-double computeGrayScanline(QImage *image) {
-  double start_time = omp_get_wtime();
-  int alto = image->height(); int ancho = image->width();
-  int jj, gray; uchar* scan; QRgb* rgbpixel;
-  for (int ii = 0; ii < alto; ii++) {
-    scan = image->scanLine(ii);
-    for (jj = 0; jj < ancho; jj++) {
-      rgbpixel = reinterpret_cast<QRgb*>(scan + jj * COLOUR_DEPTH);
-      gray = qGray(*rgbpixel);
-      *rgbpixel = QColor(gray, gray, gray).rgba();
-    }
-  }
-  return omp_get_wtime() - start_time;
-}
-
-double computeGrayScanlineParallel(QImage *image) {
-  double start_time = omp_get_wtime();
-  int alto = image->height(); int ancho = image->width();
-
-  #pragma omp parallel for
-    for (int ii = 0; ii < alto; ii++) {
-      #pragma omp critical
-      {
-        uchar* scan = image->scanLine(ii);
-        for (int jj = 0; jj < ancho; jj++) {
-          QRgb* rgbpixel = reinterpret_cast<QRgb*>(scan + jj * COLOUR_DEPTH);
-          int gray = qGray(*rgbpixel);
-          *rgbpixel = QColor(gray, gray, gray).rgba();
-        }
-      }
-    }
-    return omp_get_wtime() - start_time;
 }
 
 int main(int argc, char *argv[])
@@ -91,33 +45,15 @@ int main(int argc, char *argv[])
 
     QImage image = qp.toImage();
     QImage seqImage(image);
-    double computeTime = computeGraySequential(&seqImage);
+    double computeTime = computeHistogramSequential(&seqImage);
     printf("sequential time: %0.9f seconds\n", computeTime);
 
     QImage auxImage(image);
-    computeTime = computeGrayParallel(&auxImage);
+    computeTime = computeHistogramParallel(&auxImage);
     printf("parallel time: %0.9f seconds\n", computeTime);
 
 	if (auxImage == seqImage) printf("sequential and parallel algorithms otuput images are the same\n");
 	else printf("sequential and parallel algorithms output images are different\n");
-
-    auxImage = image;
-    computeTime = computeGrayScanline(&auxImage);
-    printf("scanline time: %0.9f seconds\n", computeTime);
-
-	if (auxImage == seqImage) printf("sequential and scanline algorithms otuput images are the same\n");
-	else printf("sequential and scanline algorithms otuput images are different\n");
-
-    seqImage = image;
-    computeTime = computeGrayScanline(&seqImage);
-    printf("scanline time: %0.9f seconds\n", computeTime);
-
-    auxImage = image;
-    computeTime = computeGrayScanlineParallel(&auxImage);
-    printf("scanline parallel time: %0.9f seconds\n", computeTime);
-
-  if (auxImage == seqImage) printf("scanline and scanline parallel algorithms otuput images are the same\n");
-	else printf("scanline and scanline parallel algorithms otuput images are different\n");
 
     QPixmap pixmap = pixmap.fromImage(auxImage);
     QGraphicsPixmapItem *item = new QGraphicsPixmapItem(pixmap);
