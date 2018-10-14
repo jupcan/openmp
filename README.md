@@ -17,5 +17,7 @@ divided into two differents subtasks each of one tested in a sequential and para
 - creation of a [gray][g] image copy from a rgb one which must be the input
 - given a image, creation of its [histogram][h]
 
+![](/files/graya.gif)
+
 [g]: https://github.com/jupcan/openmp/tree/master/graya
 [h]: https://github.com/jupcan/openmp/tree/master/histogram
