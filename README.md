@@ -15,8 +15,10 @@ sudo apt-get install qt4-qmake libqt4-dev
 ## [task1](/reqs/task1.pdf) 
 divided into two differents subtasks each of one tested in a sequential and parallel way:
 1. creation of a [gray][g] image copy from a rgb one which must be the input
-![](/files/graya.gif)
 2. given a image, creation of its [histogram][h]
+
+![](/files/graya.gif)
+_subtask1 working on ubuntu_
 
 [g]: https://github.com/jupcan/openmp/tree/master/graya
 [h]: https://github.com/jupcan/openmp/tree/master/histogram
