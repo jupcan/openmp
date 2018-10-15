@@ -1,4 +1,3 @@
-# ignore all project make files
+# ignore files to gen make
 *.o 
 *.pro
-Makefile
