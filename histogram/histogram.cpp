@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
     computeTime = computeHistogramSequential(&image, prlhistogram);
     printf("parallel time: %0.9f seconds\n", computeTime);
 
-    if(memcmp(seqhistogram, prlhistogram, 256) == 0) printf("histograms are equal\n");
+    if(memcmp(seqhistogram, prlhistogram, 256) == 0) printf("allr8 histograms are identical\n");
 }
 
 /*  ----------------------
