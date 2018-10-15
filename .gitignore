@@ -1,0 +1,5 @@
+# ignore all make files
+*.o
+*.pro
+Makefile
+
