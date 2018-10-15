@@ -70,8 +70,8 @@ int main(int argc, char *argv[])
     printf("parallel time: %0.9f seconds\n", computeTime);
 
     if(memcmp(seqhistogram, prlhistogram, 256) == 0) printf("histograms are equal\n");
-    view.show();
-    return a.exec();
+    /*view.show();
+    return a.exec();*/
 }
 
 /*  ----------------------
