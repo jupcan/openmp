@@ -12,21 +12,36 @@
     ----------------------  */
 
 #define COLOUR_DEPTH 4 //to iterate by 4 (r, g, b, alpha)
+#define NUM_GREY 256
+#define NUM_THREADS 4
 
-double computeHistogramSequential(QImage *image) {
+double computeHistogramSequential(QImage *image, int h[]) {
   double start_time = omp_get_wtime();
   uchar *pixelPtr = image->bits();
-  int histogram[256];
-  memset(histogram, 0, sizeof(histogram));
 
   for (int ii = 0; ii < image->byteCount(); ii += COLOUR_DEPTH) {
     /*  1. tell qt each step is a rgb pixel
         2. we create a new gray pixel
-        3. we asign a rgb sequence to the previously created gray pixel */
+        3. we asign a rgb sequence to the previously created gray pixel
+        4. store the gray value in histogram array */
     QRgb* rgbpixel = reinterpret_cast<QRgb*>(pixelPtr + ii);
     int gray = qGray(*rgbpixel);
-    histogram[ii] = gray
-    //*rgbpixel = QColor(gray, gray, gray).rgba();
+    *rgbpixel = QColor(gray, gray, gray).rgba();
+    h[gray]+= 1; // h[ii] = gray; reduction(+:histogram)
+  }
+  return omp_get_wtime() - start_time;
+}
+
+double computeHistogramManual(QImage *image, int h[]) {
+  double start_time = omp_get_wtime();
+  uchar *pixelPtr = image->bits();
+  for (int jj = 0; jj < NUM_THREADS; jj++) {
+    for (int ii = 0; ii < image->byteCount(); ii += COLOUR_DEPTH) {
+      QRgb* rgbpixel = reinterpret_cast<QRgb*>(pixelPtr + ii + jj*(image->byteCount()/NUM_THREADS));
+      int gray = qGray(*rgbpixel);
+        *rgbpixel = QColor(gray, gray, gray).rgba();
+      h[gray]+= 1; // h[ii] = gray;
+    }
   }
   return omp_get_wtime() - start_time;
 }
@@ -44,21 +59,17 @@ int main(int argc, char *argv[])
     }
 
     QImage image = qp.toImage();
-    QImage seqImage(image);
-    double computeTime = computeHistogramSequential(&seqImage);
-    printf("sequential time: %0.9f seconds\n", computeTime);
+    double computeTime;
+    int seqhistogram[NUM_GREY], prlhistogram[NUM_GREY];
+    memset(seqhistogram, 0, NUM_GREY*sizeof(int));
+    memset(prlhistogram, 0, NUM_GREY*sizeof(int));
 
-    QImage auxImage(image);
-    computeTime = computeHistogramParallel(&auxImage);
+    computeTime = computeHistogramSequential(&image, seqhistogram);
+    printf("sequential time: %0.9f seconds\n", computeTime);
+    computeTime = computeHistogramSequential(&image, prlhistogram);
     printf("parallel time: %0.9f seconds\n", computeTime);
 
-	if (auxImage == seqImage) printf("sequential and parallel algorithms otuput images are the same\n");
-	else printf("sequential and parallel algorithms output images are different\n");
-
-    QPixmap pixmap = pixmap.fromImage(auxImage);
-    QGraphicsPixmapItem *item = new QGraphicsPixmapItem(pixmap);
-    scene.addItem(item);
-
+    if(memcmp(seqhistogram, prlhistogram, 256) == 0) printf("histograms are equal\n");
     view.show();
     return a.exec();
 }
