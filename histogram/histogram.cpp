@@ -20,14 +20,65 @@ double computeHistogramSequential(QImage *image, int h[]) {
   uchar *pixelPtr = image->bits();
 
   for (int ii = 0; ii < image->byteCount(); ii += COLOUR_DEPTH) {
-    /*  1. tell qt each step is a rgb pixel
-        2. we create a new gray pixel
-        3. we asign a rgb sequence to the previously created gray pixel
-        4. store the gray value in histogram array */
     QRgb* rgbpixel = reinterpret_cast<QRgb*>(pixelPtr + ii);
     int gray = qGray(*rgbpixel);
-    *rgbpixel = QColor(gray, gray, gray).rgba();
-    h[gray]+= 1; // h[ii] = gray; reduction(+:histogram)
+    h[gray]++; // # pixels with gray value
+  }
+  return omp_get_wtime() - start_time;
+}
+
+double computeHistogramParallelCritical(QImage *image, int h[]) {
+  double start_time = omp_get_wtime();
+  uchar *pixelPtr = image->bits();
+
+  #pragma omp parallel for num_threads(NUM_THREADS)
+  for (int ii = 0; ii < image->byteCount(); ii += COLOUR_DEPTH) {
+    QRgb* rgbpixel = reinterpret_cast<QRgb*>(pixelPtr + ii);
+    int gray = qGray(*rgbpixel);
+    #pragma omp critical
+    h[gray]++;
+  }
+  return omp_get_wtime() - start_time;
+}
+
+double computeHistogramParallelAtomic(QImage *image, int h[]) {
+  double start_time = omp_get_wtime();
+  uchar *pixelPtr = image->bits();
+
+  #pragma omp parallel for num_threads(NUM_THREADS)
+  for (int ii = 0; ii < image->byteCount(); ii += COLOUR_DEPTH) {
+    QRgb* rgbpixel = reinterpret_cast<QRgb*>(pixelPtr + ii);
+    int gray = qGray(*rgbpixel);
+    #pragma omp atomic
+    h[gray]++;
+  }
+  return omp_get_wtime() - start_time;
+}
+
+double computeHistogramParallelLocks(QImage *image, int h[]) {
+  double start_time = omp_get_wtime();
+  uchar *pixelPtr = image->bits();
+
+  #pragma omp parallel for num_threads(NUM_THREADS)
+  for (int ii = 0; ii < image->byteCount(); ii += COLOUR_DEPTH) {
+    QRgb* rgbpixel = reinterpret_cast<QRgb*>(pixelPtr + ii);
+    int gray = qGray(*rgbpixel);
+    omp_set_lock(&(h[gray]));
+    h[gray]++;
+    omp_unset_lock(&(h[gray]));
+  }
+  return omp_get_wtime() - start_time;
+}
+
+double computeHistogramParallelReduction(QImage *image, int h[]) {
+  double start_time = omp_get_wtime();
+  uchar *pixelPtr = image->bits();
+
+  #pragma omp parallel for num_threads(NUM_THREADS) reduction(+:h[NUM_GREY])
+  for (int ii = 0; ii < image->byteCount(); ii += COLOUR_DEPTH) {
+    QRgb* rgbpixel = reinterpret_cast<QRgb*>(pixelPtr + ii);
+    int gray = qGray(*rgbpixel);
+    h[gray]+=1; // to make reduction detect the sum
   }
   return omp_get_wtime() - start_time;
 }
@@ -39,8 +90,7 @@ double computeHistogramManual(QImage *image, int h[]) {
     for (int ii = 0; ii < image->byteCount(); ii += COLOUR_DEPTH) {
       QRgb* rgbpixel = reinterpret_cast<QRgb*>(pixelPtr + ii + jj*(image->byteCount()/NUM_THREADS));
       int gray = qGray(*rgbpixel);
-        *rgbpixel = QColor(gray, gray, gray).rgba();
-      h[gray]+= 1; // h[ii] = gray;
+      h[gray]++;
     }
   }
   return omp_get_wtime() - start_time;
@@ -64,10 +114,17 @@ int main(int argc, char *argv[])
 
     computeTime = computeHistogramSequential(&image, seqhistogram);
     printf("sequential time: %0.9f seconds\n", computeTime);
-    computeTime = computeHistogramSequential(&image, prlhistogram);
-    printf("parallel time: %0.9f seconds\n", computeTime);
+    computeTime = computeHistogramParallelCritical(&image, prlhistogram);
+    printf("parallel critical time: %0.9f seconds\n", computeTime);
+    computeTime = computeHistogramParallelAtomic(&image, prlhistogram);
+    printf("parallel atomic time: %0.9f seconds\n", computeTime);
+    computeTime = computeHistogramParallelLocks(&image, prlhistogram);
+    printf("parallel locks time: %0.9f seconds\n", computeTime);
+    computeTime = computeHistogramParallelReduction(&image, prlhistogram);
+    printf("parallel reduction time: %0.9f seconds\n", computeTime);
 
     if(memcmp(seqhistogram, prlhistogram, 256) == 0) printf("allr8 histograms are identical\n");
+    return 0;
 }
 
 /*  ----------------------

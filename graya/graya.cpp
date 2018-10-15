@@ -33,7 +33,7 @@ double computeGrayParallel(QImage *image) {
   double start_time = omp_get_wtime();
   uchar *pixelPtr = image->bits();
 
-#pragma omp parallel for
+  #pragma omp parallel for
   for (int ii = 0; ii < image->byteCount(); ii += COLOUR_DEPTH) {
     QRgb* rgbpixel = reinterpret_cast<QRgb*>(pixelPtr + ii);
     int gray = qGray(*rgbpixel);
