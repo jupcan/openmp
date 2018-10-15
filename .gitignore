@@ -1,5 +1,4 @@
-# ignore all make files
-*.o
+# ignore all project make files
+*.o 
 *.pro
 Makefile
-
