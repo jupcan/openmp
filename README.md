@@ -20,5 +20,7 @@ divided into two differents subtasks each of one tested in a sequential and para
 ![](/files/graya.gif)
 _*subtask1 working on ubuntu_
 
+## [task2](/reqs/task2.pdf) 
+
 [g]: https://github.com/jupcan/openmp/tree/master/graya
 [h]: https://github.com/jupcan/openmp/tree/master/histogram
