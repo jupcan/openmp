@@ -107,10 +107,6 @@ int main(int argc, char *argv[])
 	if (auxImage == seqImage) printf("sequential and scanline algorithms otuput images are the same\n");
 	else printf("sequential and scanline algorithms otuput images are different\n");
 
-    seqImage = image;
-    computeTime = computeGrayScanline(&seqImage);
-    printf("scanline time: %0.9f seconds\n", computeTime);
-
     auxImage = image;
     computeTime = computeGrayScanlineParallel(&auxImage);
     printf("scanline parallel time: %0.9f seconds\n", computeTime);
