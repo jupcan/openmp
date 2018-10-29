@@ -98,3 +98,10 @@ int main(int argc, char *argv[])
     view.show();
     return a.exec();
 }
+
+/*  ----------------------
+    conclusion: the best time is obtained using dynamic,image_height/num_of_cores so
+		that's the one we are keeping. sometimes we were getting a segmentation fault when
+		executing so we were in need of protecting the writting in dstImage with a critical
+		section, if not we get better result but the probability of program to fail.
+    ----------------------  */
