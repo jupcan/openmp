@@ -25,7 +25,7 @@ double SobelBasico(QImage *srcImage, QImage *dstImage) {
 
       // Aplicamos el kernel weight[3][3] al pixel y su entorno
       pixelValue = 0;
-      for (int i = -1; i <= 1; i++) {					// Recorremos el kernel weight[3][3]
+      for (int i = -1; i <= 1; i++) {	// Recorremos el kernel weight[3][3]
           for (int j = -1; j <= 1; j++) {
 						blue = qBlue(srcImage->pixel(jj+j, ii+i));	// Sintaxis pixel: pixel(columna, fila), es decir pixel(x,y)
             pixelValue += weight[i + 1][j + 1] * blue;	// En pixelValue se calcula el componente y del gradiente
@@ -40,21 +40,21 @@ double SobelBasico(QImage *srcImage, QImage *dstImage) {
 }
 
 /*  ----------------------
-  	time SobelParallel (static,6): 0,121704638
-		time SobelParallel (dynamic,6): 0,122310773
-		time SobelParallel (static,image_height/num_of_cores): 0,118435808
-		time SobelParallel (dynamic,image_height/num_of_cores): 0,122175187
+  	time SobelParallel (static,6): 0,309954822
+		time SobelParallel (dynamic,6): 0,346445351
+		time SobelParallel (static,image_height/num_of_cores): 0,311226297
+		time SobelParallel (dynamic,image_height/num_of_cores): 0,281694964
     ----------------------  */
 
 double SobelParallel(QImage *srcImage, QImage *dstImage) {
 	double start_time = omp_get_wtime();
 
-	#pragma omp parallel for schedule(static,6)
+	#pragma omp parallel for schedule(dynamic,srcImage->height()/NUM_THREADS)
 	for (int ii = 1; ii < srcImage->height() - 1; ii++) {  	// Recorremos la imagen pixel a pixel, excepto los bordes
 		for (int jj = 1; jj < srcImage->width() - 1; jj++) {
 			// Aplicamos el kernel weight[3][3] al pixel y su entorno
 			int pixelValue = 0;
-		  for (int i = -1; i <= 1; i++) {					// Recorremos el kernel weight[3][3]
+		  for (int i = -1; i <= 1; i++) {	// Recorremos el kernel weight[3][3]
 		  	for (int j = -1; j <= 1; j++) {
 					int blue = qBlue(srcImage->pixel(jj+j, ii+i));	// Sintaxis pixel: pixel(columna, fila), es decir pixel(x,y)
 		      pixelValue += weight[i + 1][j + 1] * blue;	// En pixelValue se calcula el componente y del gradiente
@@ -62,6 +62,7 @@ double SobelParallel(QImage *srcImage, QImage *dstImage) {
 		  }
 		  if (pixelValue > 255) pixelValue = 255;
 		  if (pixelValue < 0) pixelValue = 0;
+			#pragma omp critical
 		  dstImage->setPixel(jj,ii, QColor(pixelValue, pixelValue, pixelValue).rgba());	// Se actualiza la imagen destino
 		}
 	}
