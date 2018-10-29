@@ -94,6 +94,30 @@ double computeHistogramParallelReduction(QImage *image, int *h) {
   return omp_get_wtime() - start_time;
 }
 
+/*double computeHistogramManual(QImage *image, int *h) {
+  double start_time = omp_get_wtime();
+  uchar *pixelPtr = image->bits();
+  int histogram[NUM_THREADS][NUM_GREY];
+
+  #pragma omp parallel for num_threads(NUM_THREADS)
+  for (int ii = 0; ii < NUM_THREADS; ii++) {
+    int s = (ii*image->byteCount())/NUM_THREADS;
+    int f = ((ii + 1)*image->byteCount())/NUM_THREADS;
+    for (int jj = s; jj < f; jj += COLOUR_DEPTH) {
+      QRgb* rgbpixel = reinterpret_cast<QRgb*>(pixelPtr + jj);
+      int gray = qGray(*rgbpixel);
+      histogram[ii][gray]++;
+    }
+  }
+  //sequential for to add all histograms into one
+  for (int kk = 0; kk < NUM_GREY; kk++) {
+    for (int ll = 0; ll < NUM_THREADS; ll++) {
+      h[ll] += histogram[ll][kk];
+    }
+  }
+  return omp_get_wtime() - start_time;
+}*/
+
 double computeHistogramManual(QImage *image, int *h) {
   double start_time = omp_get_wtime();
   uchar *pixelPtr = image->bits();
@@ -165,4 +189,8 @@ int main(int argc, char *argv[])
     we can also appreciate that the manual time is the lower one but this is also due to what
     we were explaining before, for computing the histogram is not that worth a parallel implementation.
     if we have to choose, reduction and manual are the way to in this case.
+
+    we have had some problems with the use of parallel fors in the manual method since getting
+    different histogram results and why don't know exactly why, we have left the code commented
+    above and added our first version that works fine but just using sequential fors.
     ----------------------  */
