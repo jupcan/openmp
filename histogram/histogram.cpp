@@ -164,4 +164,5 @@ int main(int argc, char *argv[])
 
     we can also appreciate that the manual time is the lower one but this is also due to what
     we were explaining before, for computing the histogram is not that worth a parallel implementation.
+    if we have to choose, reduction and manual are the way to in this case.
     ----------------------  */
