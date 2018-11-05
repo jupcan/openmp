@@ -14,7 +14,8 @@
 #define COLOUR_DEPTH 4
 #define NUM_THREADS 4
 
-int weight[3][3] = 	{{ 1,  2,  1 }, { 0,  0,  0 }, { -1,  -2,  -1 }};
+int weight[3][3]={{1, 2, 1 },{0, 0, 0 },{-1, -2, -1 }};
+int cache[3][2]={{0, 0},{0, 0},{0, 0}};
 
 double SobelBasico(QImage *srcImage, QImage *dstImage) {
 	double start_time = omp_get_wtime();
@@ -39,23 +40,39 @@ double SobelBasico(QImage *srcImage, QImage *dstImage) {
   return omp_get_wtime() - start_time;
 }
 
-	double SobelLocal(QImage *srcImage, QImage *dstImage) {
+double SobelLocal(QImage *srcImage, QImage *dstImage) {
 	double start_time = omp_get_wtime();
-  int pixelValue, ii, jj, blue;
+  int pixelValue, ii, jj;
+	int cache[3][3] = {{0, 0, 0},{0, 0, 0},{0, 0, 0}};
 
   for (ii = 1; ii < srcImage->height() - 1; ii++) {  	// Recorremos la imagen pixel a pixel, excepto los bordes
-    for (jj = 1; jj < srcImage->width() - 1; jj++) {
-
+		for (int j = -1; j <= 1; j++) {
+				for (int i = -1; i <= 0; i++) {
+				cache[j+1][i+1] = qBlue(srcImage->pixel(1+i, 1+j));
+			}
+	  }
+		for (jj = 1; jj < srcImage->width() - 1; jj++) {
       // Aplicamos el kernel weight[3][3] al pixel y su entorno
       pixelValue = 0;
+			cache[0][2] = qBlue(srcImage->pixel(jj, ii-1));
+			cache[1][2] = qBlue(srcImage->pixel(jj, ii));
+			cache[2][2] = qBlue(srcImage->pixel(jj+1, ii+1));
       for (int i = -1; i <= 1; i++) {	// Recorremos el kernel weight[3][3]
           for (int j = -1; j <= 1; j++) {
-						blue = qBlue(srcImage->pixel(jj+j, ii+i));	// Sintaxis pixel: pixel(columna, fila), es decir pixel(x,y)
-            pixelValue += weight[i + 1][j + 1] * blue;	// En pixelValue se calcula el componente y del gradiente
+            pixelValue += weight[i + 1][j + 1]*cache[i + 1][j + 1];	// En pixelValue se calcula el componente y del gradiente
           }
       }
+
       if (pixelValue > 255) pixelValue = 255;
       if (pixelValue < 0) pixelValue = 0;
+			cache[0][0] = cache[0][1];
+			cache[0][1] = cache[0][2];
+
+			cache[1][0] = cache[1][1];
+			cache[1][1] = cache[1][2];
+
+			cache[2][0] = cache[2][1];
+			cache[2][1] = cache[2][2];
       dstImage->setPixel(jj,ii, QColor(pixelValue, pixelValue, pixelValue).rgba());	// Se actualiza la imagen destino
     }
   }
@@ -111,10 +128,17 @@ int main(int argc, char *argv[])
 		computeTime = SobelParallel(&image, &auxImage);
 		printf("sobel parallel time: %0.9f seconds\n", computeTime);
 
-		if (auxImage == sobelImage) printf("scanline and scanline parallel algorithms otuput images are the same\n");
-		else printf("scanline and scanline parallel algorithms otuput images are different\n");
+		if (auxImage == sobelImage) printf("sobel sequetial and parallel algorithms otuput images are the same\n");
+		else printf("sobel sequetial and parallel algorithms otuput images are different\n");
 
-    QPixmap pixmap = pixmap.fromImage(auxImage);
+		QImage localImage(image);
+		computeTime = SobelLocal(&image, &localImage);
+		printf("sobel local time: %0.9f seconds\n", computeTime);
+
+		if (auxImage == sobelImage) printf("sobel sequetial and local algorithms otuput images are the same\n");
+		else printf("sobel sequetian and local algorithms otuput images are different\n");
+
+    QPixmap pixmap = pixmap.fromImage(localImage);
     QGraphicsPixmapItem *item = new QGraphicsPixmapItem(pixmap);
     scene.addItem(item);
 
