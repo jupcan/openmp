@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
 
   QImage matrixImage(srcImage);
 	computeTime = naive_matrix(&srcImage, &matrixImage);
-	printf("native matrix time: %0.9f seconds\n", computeTime);
+	printf("naive matrix time: %0.9f seconds\n", computeTime);
 
   QImage vectorImage(srcImage);
   computeTime = gaussian_vectors(&srcImage, &vectorImage);
