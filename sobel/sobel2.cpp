@@ -4,6 +4,7 @@
 #include <QGraphicsPixmapItem>
 #include <stdio.h>
 #include <omp.h>
+#include <math.h>
 
 /*  ----------------------
     a1 lab group
@@ -148,6 +149,60 @@ double SobelLocalParallel(QImage *srcImage, QImage *dstImage) {
   return omp_get_wtime() - start_time;
 }
 
+double SobelCompleto(QImage *srcImage, QImage *dstImage) {
+	double start_time = omp_get_wtime();
+  int pixelValueY, pixelValueX, gradient, ii, jj, blue;
+
+  for (ii = 1; ii < srcImage->height() - 1; ii++) {  	// Recorremos la imagen pixel a pixel, excepto los bordes
+    for (jj = 1; jj < srcImage->width() - 1; jj++) {
+
+      // Aplicamos el kernel weight[3][3] al pixel y su entorno
+      pixelValueY = pixelValueX = 0;
+      for (int i = -1; i <= 1; i++) {	// Recorremos el kernel weight[3][3]
+          for (int j = -1; j <= 1; j++) {
+						blue = qBlue(srcImage->pixel(jj+j, ii+i));	// Sintaxis pixel: pixel(columna, fila), es decir pixel(x,y)
+            pixelValueY += weight_y[i + 1][j + 1] * blue;	// En pixelValue se calcula el componente y del gradiente
+						pixelValueX += weight_x[i + 1][j + 1] * blue;
+          }
+      }
+			gradient = sqrt((pow(pixelValueY,2) + pow(pixelValueX,2))); //Gradient calculation
+			int newPixel = gradient;
+      if (newPixel > 255) newPixel = 255;
+      if (newPixel < 0) newPixel = 0;
+      dstImage->setPixel(jj,ii, QColor(newPixel, newPixel, newPixel).rgba());	// Se actualiza la imagen destino
+    }
+  }
+  return omp_get_wtime() - start_time;
+}
+
+double SobelCompletoParallel(QImage *srcImage, QImage *dstImage) {
+	double start_time = omp_get_wtime();
+
+	#pragma omp parallel for schedule(dynamic,srcImage->height()/NUM_THREADS)
+  for (int ii = 1; ii < srcImage->height() - 1; ii++) {  	// Recorremos la imagen pixel a pixel, excepto los bordes
+    for (int jj = 1; jj < srcImage->width() - 1; jj++) {
+
+      // Aplicamos el kernel weight[3][3] al pixel y su entorno
+      int pixelValueY = 0;
+			int pixelValueX = 0;
+      for (int i = -1; i <= 1; i++) {	// Recorremos el kernel weight[3][3]
+          for (int j = -1; j <= 1; j++) {
+						int blue = qBlue(srcImage->pixel(jj+j, ii+i));	// Sintaxis pixel: pixel(columna, fila), es decir pixel(x,y)
+            pixelValueY += weight_y[i + 1][j + 1] * blue;	// En pixelValue se calcula el componente y del gradiente
+						pixelValueX += weight_x[i + 1][j + 1] * blue;
+          }
+      }
+			int gradient = sqrt((pow(pixelValueY,2) + pow(pixelValueX,2))); //Gradient calculation
+			int newPixel = gradient;
+      if (newPixel > 255) newPixel = 255;
+      if (newPixel < 0) newPixel = 0;
+			#pragma omp critical
+      dstImage->setPixel(jj,ii, QColor(newPixel, newPixel, newPixel).rgba());	// Se actualiza la imagen destino
+    }
+  }
+  return omp_get_wtime() - start_time;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
@@ -174,17 +229,25 @@ int main(int argc, char *argv[])
 		computeTime = SobelLocal(&image, &localImage);
 		printf("sobel local time: %0.9f seconds\n", computeTime);
 
+		QImage localPImage(image);
+		computeTime = SobelLocalParallel(&image, &localPImage);
+		printf("sobel local parallel time: %0.9f seconds\n", computeTime);
+
 		if (localImage == sobelImage) printf("sobel sequential and sobel local algorithms otuput images are the same\n");
 		else printf("sobel sequential and sobel local algorithms otuput images are different\n");
 
-		QImage localParallelImage(image);
-		computeTime = SobelLocalParallel(&image, &localParallelImage);
-		printf("sobel local parallel time: %0.9f seconds\n", computeTime);
+		QImage completeImage(image);
+		computeTime = SobelCompleto(&image, &completeImage);
+		printf("sobel complete time: %0.9f seconds\n", computeTime);
 
-		if (localParallelImage == localImage) printf("sobel local and sobel local parallel algorithms otuput images are the same\n");
-		else printf("sobel local and sobel local parallel algorithms otuput images are different\n");
+		QImage completePImage(image);
+		computeTime = SobelCompletoParallel(&image, &completePImage);
+		printf("sobel complete parallel time: %0.9f seconds\n", computeTime);
 
-    QPixmap pixmap = pixmap.fromImage(localParallelImage);
+		if (completeImage == completePImage) printf("sobel complete and sobel complete parallel algorithms otuput images are the same\n");
+		else printf("sobel complete and sobel complete parallel algorithms otuput images are different\n");
+
+    QPixmap pixmap = pixmap.fromImage(completePImage);
     QGraphicsPixmapItem *item = new QGraphicsPixmapItem(pixmap);
     scene.addItem(item);
 
@@ -193,8 +256,10 @@ int main(int argc, char *argv[])
 }
 
 /*  ----------------------
-    conclusion: the best time is obtained using dynamic,image_height/num_of_cores so
-		that's the one we are keeping. sometimes we were getting a segmentation fault when
-		executing so we were in need of protecting the writting in dstImage with a critical
-		section, if not we get better result but the probability of program to fail.
+    conclusion: local approach to compute sobel is way faster than the other methods since
+		using less accesses to memory and thus efficiency is higher. we can also appreciate that
+		in all cases the parallel versions are slower cause of critical sections and not all
+		threads been able to write down the obtained results at once. the complete sobel is also
+		as fast as just the sequential one despite applying both kernels which is not an operation
+		to take into account time consuming talking, we can not say the same about pragmas using.
     ----------------------  */
