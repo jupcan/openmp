@@ -156,16 +156,16 @@ double SobelCompleto(QImage *srcImage, QImage *dstImage) {
   for (ii = 1; ii < srcImage->height() - 1; ii++) {  	// Recorremos la imagen pixel a pixel, excepto los bordes
     for (jj = 1; jj < srcImage->width() - 1; jj++) {
 
-      // Aplicamos el kernel weight[3][3] al pixel y su entorno
+      // Aplicamos los dos kernels al pixel y su entorno
       pixelValueY = pixelValueX = 0;
-      for (int i = -1; i <= 1; i++) {	// Recorremos el kernel weight[3][3]
+      for (int i = -1; i <= 1; i++) {
           for (int j = -1; j <= 1; j++) {
-						blue = qBlue(srcImage->pixel(jj+j, ii+i));	// Sintaxis pixel: pixel(columna, fila), es decir pixel(x,y)
-            pixelValueY += weight_y[i + 1][j + 1] * blue;	// En pixelValue se calcula el componente y del gradiente
+						blue = qBlue(srcImage->pixel(jj+j, ii+i));
+            pixelValueY += weight_y[i + 1][j + 1] * blue;
 						pixelValueX += weight_x[i + 1][j + 1] * blue;
           }
       }
-			gradient = sqrt((pow(pixelValueY,2) + pow(pixelValueX,2))); //Gradient calculation
+			gradient = sqrt((pow(pixelValueY,2) + pow(pixelValueX,2))); // Calculamos el gradiente
 			int newPixel = gradient;
       if (newPixel > 255) newPixel = 255;
       if (newPixel < 0) newPixel = 0;
@@ -182,17 +182,17 @@ double SobelCompletoParallel(QImage *srcImage, QImage *dstImage) {
   for (int ii = 1; ii < srcImage->height() - 1; ii++) {  	// Recorremos la imagen pixel a pixel, excepto los bordes
     for (int jj = 1; jj < srcImage->width() - 1; jj++) {
 
-      // Aplicamos el kernel weight[3][3] al pixel y su entorno
+      // Aplicamos los dos kernels al pixel y su entorno
       int pixelValueY = 0;
 			int pixelValueX = 0;
-      for (int i = -1; i <= 1; i++) {	// Recorremos el kernel weight[3][3]
+      for (int i = -1; i <= 1; i++) {
           for (int j = -1; j <= 1; j++) {
-						int blue = qBlue(srcImage->pixel(jj+j, ii+i));	// Sintaxis pixel: pixel(columna, fila), es decir pixel(x,y)
-            pixelValueY += weight_y[i + 1][j + 1] * blue;	// En pixelValue se calcula el componente y del gradiente
+						int blue = qBlue(srcImage->pixel(jj+j, ii+i));
+            pixelValueY += weight_y[i + 1][j + 1] * blue;
 						pixelValueX += weight_x[i + 1][j + 1] * blue;
           }
       }
-			int gradient = sqrt((pow(pixelValueY,2) + pow(pixelValueX,2))); //Gradient calculation
+			int gradient = sqrt((pow(pixelValueY,2) + pow(pixelValueX,2))); // Calculamos el gradiente
 			int newPixel = gradient;
       if (newPixel > 255) newPixel = 255;
       if (newPixel < 0) newPixel = 0;
