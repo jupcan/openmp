@@ -14,8 +14,8 @@
 #define COLOUR_DEPTH 4
 #define NUM_THREADS 4
 
-int weight[3][3]={{1, 2, 1 },{0, 0, 0 },{-1, -2, -1 }};
-int cache[3][2]={{0, 0},{0, 0},{0, 0}};
+int weight[3][3]={{1,2,1},{0,0,0},{-1,-2,-1}};
+int cache[3][2]={{0,0},{0,0},{0,0}};
 
 double SobelBasico(QImage *srcImage, QImage *dstImage) {
 	double start_time = omp_get_wtime();
