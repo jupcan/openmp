@@ -14,7 +14,8 @@
 #define COLOUR_DEPTH 4
 #define NUM_THREADS 4
 
-int weight[3][3]={{1,2,1},{0,0,0},{-1,-2,-1}};
+int weight_y[3][3]={{1,2,1},{0,0,0},{-1,-2,-1}};
+int weight_x[3][3]={{-1,0,1},{-2,0,2},{-1,0,1}};
 int cache[3][2]={{0,0},{0,0},{0,0}};
 
 double SobelBasico(QImage *srcImage, QImage *dstImage) {
@@ -29,7 +30,7 @@ double SobelBasico(QImage *srcImage, QImage *dstImage) {
       for (int i = -1; i <= 1; i++) {	// Recorremos el kernel weight[3][3]
           for (int j = -1; j <= 1; j++) {
 						blue = qBlue(srcImage->pixel(jj+j, ii+i));	// Sintaxis pixel: pixel(columna, fila), es decir pixel(x,y)
-            pixelValue += weight[i + 1][j + 1] * blue;	// En pixelValue se calcula el componente y del gradiente
+            pixelValue += weight_y[i + 1][j + 1] * blue;	// En pixelValue se calcula el componente y del gradiente
           }
       }
       if (pixelValue > 255) pixelValue = 255;
@@ -59,7 +60,7 @@ double SobelLocal(QImage *srcImage, QImage *dstImage) {
 			cache[2][2] = qBlue(srcImage->pixel(jj+1, ii+1));
       for (int i = -1; i <= 1; i++) {	// Recorremos el kernel weight[3][3]
           for (int j = -1; j <= 1; j++) {
-            pixelValue += weight[i + 1][j + 1]*cache[i + 1][j + 1];	// En pixelValue se calcula el componente y del gradiente
+            pixelValue += weight_y[i + 1][j + 1]*cache[i + 1][j + 1];	// En pixelValue se calcula el componente y del gradiente
           }
       }
 
@@ -73,6 +74,46 @@ double SobelLocal(QImage *srcImage, QImage *dstImage) {
 
 			cache[2][0] = cache[2][1];
 			cache[2][1] = cache[2][2];
+      dstImage->setPixel(jj,ii, QColor(pixelValue, pixelValue, pixelValue).rgba());	// Se actualiza la imagen destino
+    }
+  }
+  return omp_get_wtime() - start_time;
+}
+
+double SobelLocalParallel(QImage *srcImage, QImage *dstImage) {
+	double start_time = omp_get_wtime();
+	int cache[3][3] = {{0, 0, 0},{0, 0, 0},{0, 0, 0}};
+
+	#pragma omp parallel for schedule(dynamic,srcImage->height()/NUM_THREADS) private(cache)
+  for (int ii = 1; ii < srcImage->height() - 1; ii++) {  	// Recorremos la imagen pixel a pixel, excepto los bordes
+		for (int j = -1; j <= 1; j++) {
+				for (int i = -1; i <= 0; i++) {
+				cache[j+1][i+1] = qBlue(srcImage->pixel(1+i, 1+j));
+			}
+	  }
+		for (int jj = 1; jj < srcImage->width() - 1; jj++) {
+      // Aplicamos el kernel weight[3][3] al pixel y su entorno
+      int pixelValue = 0;
+			cache[0][2] = qBlue(srcImage->pixel(jj, ii-1));
+			cache[1][2] = qBlue(srcImage->pixel(jj, ii));
+			cache[2][2] = qBlue(srcImage->pixel(jj+1, ii+1));
+      for (int i = -1; i <= 1; i++) {	// Recorremos el kernel weight[3][3]
+          for (int j = -1; j <= 1; j++) {
+            pixelValue += weight_y[i + 1][j + 1]*cache[i + 1][j + 1];	// En pixelValue se calcula el componente y del gradiente
+          }
+      }
+
+      if (pixelValue > 255) pixelValue = 255;
+      if (pixelValue < 0) pixelValue = 0;
+			cache[0][0] = cache[0][1];
+			cache[0][1] = cache[0][2];
+
+			cache[1][0] = cache[1][1];
+			cache[1][1] = cache[1][2];
+
+			cache[2][0] = cache[2][1];
+			cache[2][1] = cache[2][2];
+			#pragma omp critical
       dstImage->setPixel(jj,ii, QColor(pixelValue, pixelValue, pixelValue).rgba());	// Se actualiza la imagen destino
     }
   }
@@ -97,7 +138,7 @@ double SobelParallel(QImage *srcImage, QImage *dstImage) {
 		  for (int i = -1; i <= 1; i++) {	// Recorremos el kernel weight[3][3]
 		  	for (int j = -1; j <= 1; j++) {
 					int blue = qBlue(srcImage->pixel(jj+j, ii+i));	// Sintaxis pixel: pixel(columna, fila), es decir pixel(x,y)
-		      pixelValue += weight[i + 1][j + 1] * blue;	// En pixelValue se calcula el componente y del gradiente
+		      pixelValue += weight_y[i + 1][j + 1] * blue;	// En pixelValue se calcula el componente y del gradiente
 		    }
 		  }
 		  if (pixelValue > 255) pixelValue = 255;
@@ -135,10 +176,17 @@ int main(int argc, char *argv[])
 		computeTime = SobelLocal(&image, &localImage);
 		printf("sobel local time: %0.9f seconds\n", computeTime);
 
-		if (auxImage == sobelImage) printf("sobel sequetial and local algorithms otuput images are the same\n");
-		else printf("sobel sequetian and local algorithms otuput images are different\n");
+		if (localImage == sobelImage) printf("sobel sequential and sobel local algorithms otuput images are the same\n");
+		else printf("sobel sequential and sobel local algorithms otuput images are different\n");
 
-    QPixmap pixmap = pixmap.fromImage(localImage);
+		QImage localParallelImage(image);
+		computeTime = SobelLocalParallel(&image, &localParallelImage);
+		printf("sobel local parallel time: %0.9f seconds\n", computeTime);
+
+		if (localParallelImage == localImage) printf("sobel local and sobel local parallel algorithms otuput images are the same\n");
+		else printf("sobel local and sobel local parallel algorithms otuput images are different\n");
+
+    QPixmap pixmap = pixmap.fromImage(localParallelImage);
     QGraphicsPixmapItem *item = new QGraphicsPixmapItem(pixmap);
     scene.addItem(item);
 
