@@ -156,5 +156,5 @@ int main(int argc, char *argv[])
 }
 
 /*  ----------------------
-    conclusion: parallel algorithm is a bit faster but it is not noticeable
+    conclusion: parallel algorithm is a bit faster this time but it is not noticeable.
     ----------------------  */
