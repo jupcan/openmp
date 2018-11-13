@@ -10,14 +10,14 @@
     a1 lab group
     Juan Perea Campos
     Javier Zaldivar Martín
-    ----------------------  */
+    ----------------------  */		
 
 #define COLOUR_DEPTH 4
 #define NUM_THREADS 4
 
 int weight_y[3][3]={{1,2,1},{0,0,0},{-1,-2,-1}};
 int weight_x[3][3]={{-1,0,1},{-2,0,2},{-1,0,1}};
-int cache[3][2]={{0,0},{0,0},{0,0}};
+int cache[3][3] = {{0,0,0},{0,0,0},{0,0,0}};
 
 double SobelBasico(QImage *srcImage, QImage *dstImage) {
 	double start_time = omp_get_wtime();
@@ -74,34 +74,31 @@ double SobelParallel(QImage *srcImage, QImage *dstImage) {
 
 double SobelLocal(QImage *srcImage, QImage *dstImage) {
 	double start_time = omp_get_wtime();
-  int pixelValue, ii, jj;
-	int cache[3][3] = {{0, 0, 0},{0, 0, 0},{0, 0, 0}};
+	int pixelValue, ii, jj;
 
-  for (ii = 1; ii < srcImage->height() - 1; ii++) {  	// Recorremos la imagen pixel a pixel, excepto los bordes
-		for (int j = -1; j <= 1; j++) {
-				for (int i = -1; i <= 0; i++) {
-				cache[j+1][i+1] = qBlue(srcImage->pixel(1+i, 1+j));
-			}
-	  }
+  for (ii = 1; ii < srcImage->height() - 1; ii++) {	// Recorremos la imagen pixel a pixel, excepto los bordes
 		for (jj = 1; jj < srcImage->width() - 1; jj++) {
+			for (int j = -1; j <= 1; j++) {
+				for (int i = -1; i <= 0; i++) {
+					cache[j+1][i+1] = qBlue(srcImage->pixel(jj+j, ii+i));
+				}
+			}
       // Aplicamos el kernel weight[3][3] al pixel y su entorno
       pixelValue = 0;
-			cache[0][2] = qBlue(srcImage->pixel(jj, ii-1));
-			cache[1][2] = qBlue(srcImage->pixel(jj, ii));
+			cache[0][2] = qBlue(srcImage->pixel(jj-1, ii+1));
+			cache[1][2] = qBlue(srcImage->pixel(jj, ii+1));
 			cache[2][2] = qBlue(srcImage->pixel(jj+1, ii+1));
       for (int i = -1; i <= 1; i++) {	// Recorremos el kernel weight[3][3]
           for (int j = -1; j <= 1; j++) {
-            pixelValue += weight_y[i + 1][j + 1]*cache[i + 1][j + 1];	// En pixelValue se calcula el componente y del gradiente
+            pixelValue += weight_y[i + 1][j + 1]*cache[j + 1][i + 1];	// En pixelValue se calcula el componente y del gradiente
           }
       }
       if (pixelValue > 255) pixelValue = 255;
       if (pixelValue < 0) pixelValue = 0;
 			cache[0][0] = cache[0][1];
 			cache[0][1] = cache[0][2];
-
 			cache[1][0] = cache[1][1];
 			cache[1][1] = cache[1][2];
-
 			cache[2][0] = cache[2][1];
 			cache[2][1] = cache[2][2];
       dstImage->setPixel(jj,ii, QColor(pixelValue, pixelValue, pixelValue).rgba());	// Se actualiza la imagen destino
@@ -112,34 +109,31 @@ double SobelLocal(QImage *srcImage, QImage *dstImage) {
 
 double SobelLocalParallel(QImage *srcImage, QImage *dstImage) {
 	double start_time = omp_get_wtime();
-	int cache[3][3] = {{0, 0, 0},{0, 0, 0},{0, 0, 0}};
 
-	#pragma omp parallel for schedule(dynamic,srcImage->height()/NUM_THREADS) private(cache)
-  for (int ii = 1; ii < srcImage->height() - 1; ii++) {  	// Recorremos la imagen pixel a pixel, excepto los bordes
-		for (int j = -1; j <= 1; j++) {
-				for (int i = -1; i <= 0; i++) {
-				cache[j+1][i+1] = qBlue(srcImage->pixel(1+i, 1+j));
-			}
-	  }
+	#pragma omp parallel for schedule(dynamic,srcImage->height()/NUM_THREADS)
+  for (int ii = 1; ii < srcImage->height() - 1; ii++) {	// Recorremos la imagen pixel a pixel, excepto los bordes
 		for (int jj = 1; jj < srcImage->width() - 1; jj++) {
+			for (int j = -1; j <= 1; j++) {
+				for (int i = -1; i <= 0; i++) {
+					cache[j+1][i+1] = qBlue(srcImage->pixel(jj+j, ii+i));
+				}
+			}
       // Aplicamos el kernel weight[3][3] al pixel y su entorno
       int pixelValue = 0;
-			cache[0][2] = qBlue(srcImage->pixel(jj, ii-1));
-			cache[1][2] = qBlue(srcImage->pixel(jj, ii));
+			cache[0][2] = qBlue(srcImage->pixel(jj-1, ii+1));
+			cache[1][2] = qBlue(srcImage->pixel(jj, ii+1));
 			cache[2][2] = qBlue(srcImage->pixel(jj+1, ii+1));
       for (int i = -1; i <= 1; i++) {	// Recorremos el kernel weight[3][3]
           for (int j = -1; j <= 1; j++) {
-            pixelValue += weight_y[i + 1][j + 1]*cache[i + 1][j + 1];	// En pixelValue se calcula el componente y del gradiente
+            pixelValue += weight_y[i + 1][j + 1]*cache[j + 1][i + 1];	// En pixelValue se calcula el componente y del gradiente
           }
       }
       if (pixelValue > 255) pixelValue = 255;
       if (pixelValue < 0) pixelValue = 0;
 			cache[0][0] = cache[0][1];
 			cache[0][1] = cache[0][2];
-
 			cache[1][0] = cache[1][1];
 			cache[1][1] = cache[1][2];
-
 			cache[2][0] = cache[2][1];
 			cache[2][1] = cache[2][2];
 			#pragma omp critical
@@ -249,7 +243,7 @@ int main(int argc, char *argv[])
 
     QPixmap pixmap = pixmap.fromImage(completePImage);
     QGraphicsPixmapItem *item = new QGraphicsPixmapItem(pixmap);
-    scene.addItem(item);
+		scene.addItem(item);
 
     view.show();
     return a.exec();
