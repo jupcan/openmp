@@ -24,6 +24,12 @@ _*subtask1 working on ubuntu_
 ## [task2](/reqs/task2.pdf)
 given an image apply a [sobel][s] algorithm to generate its equivalent
 
+## [task3](/reqs/task3.pdf)
+given an image apply a [gaussian][gg] algorithm to remove noise from it and blur it
+
+*all tasks return a visual representation of the algorithms' solutions as shown with the 1st one
+
 [g]: https://github.com/jupcan/openmp/tree/master/graya
 [h]: https://github.com/jupcan/openmp/tree/master/histogram
 [s]: https://github.com/jupcan/openmp/tree/master/sobel
+[gg]: https://github.com/jupcan/openmp/tree/master/gaussian
