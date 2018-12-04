@@ -33,7 +33,7 @@ given an image apply a [gaussian][gg] algorithm to remove noise from it and blur
 ![](/files/gaussian.jpg)
 _*task3 output_
 
-[i]: /files/test_1080p.bmp
+[i]: https://github.com/jupcan/openmp/blob/master/files/test_1080p.bmp
 [g]: https://github.com/jupcan/openmp/tree/master/graya
 [h]: https://github.com/jupcan/openmp/tree/master/histogram
 [s]: https://github.com/jupcan/openmp/tree/master/sobel
